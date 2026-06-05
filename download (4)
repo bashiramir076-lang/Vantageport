@@ -1,0 +1,56 @@
+// Prisma Schema for Portfolio Application
+// Database: PostgreSQL
+// Features: Admin authentication, Categories, Portfolio Items
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Admin Settings: Stores admin password and configuration
+model AdminSettings {
+  id               Int      @id @default(autoincrement())
+  username         String   @default("Ali") // Admin username
+  passwordHash     String   // Encrypted password hash (bcrypt)
+  whatsappNumber   String?  // Optional WhatsApp contact
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("admin_settings")
+}
+
+// Categories: Portfolio section categories
+model Category {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique // Category name (e.g., "Web Design")
+  slug        String            @unique // URL-friendly slug
+  icon        String?           // SVG or icon URL
+  description String?           // Category description
+  items       PortfolioItem[]   // Related portfolio items
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("categories")
+}
+
+// Portfolio Items: Individual works/projects
+model PortfolioItem {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title       String   // Project title
+  description String?  // Project description
+  fileUrl     String   // Direct URL to the file (from S3 or storage)
+  fileKey     String   // Storage key for reference
+  fileType    String   // 'image' or 'video'
+  thumbnail   String?  // Thumbnail URL
+  order       Int      @default(0) // Display order
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("portfolio_items")
+}

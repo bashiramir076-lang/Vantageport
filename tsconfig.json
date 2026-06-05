@@ -1,0 +1,244 @@
+// Portfolio API Routes
+import express, { Request, Response } from "express";
+import {
+  getAllCategories,
+  getCategoryBySlug,
+  getAllPortfolioItems,
+  getPortfolioItemsByCategory,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  createPortfolioItem,
+  updatePortfolioItem,
+  deletePortfolioItem,
+} from "../services/portfolioService";
+
+const router = express.Router();
+
+/**
+ * Get all categories with items
+ * GET /api/portfolio/categories
+ */
+router.get("/categories", async (req: Request, res: Response) => {
+  try {
+    const categories = await getAllCategories();
+    res.json(categories);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ error: "حدث خطأ في جلب الفئات" });
+  }
+});
+
+/**
+ * Get category by slug
+ * GET /api/portfolio/categories/:slug
+ */
+router.get("/categories/:slug", async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const category = await getCategoryBySlug(slug);
+
+    if (!category) {
+      return res.status(404).json({ error: "الفئة غير موجودة" });
+    }
+
+    res.json(category);
+  } catch (error) {
+    console.error("Error fetching category:", error);
+    res.status(500).json({ error: "حدث خطأ في جلب الفئة" });
+  }
+});
+
+/**
+ * Create a new category
+ * POST /api/portfolio/categories
+ */
+router.post("/categories", async (req: Request, res: Response) => {
+  try {
+    const { name, slug, description, icon } = req.body;
+
+    if (!name || !slug) {
+      return res.status(400).json({ error: "الاسم والـ slug مطلوبان" });
+    }
+
+    const category = await createCategory({
+      name,
+      slug,
+      description,
+      icon,
+    });
+
+    res.status(201).json(category);
+  } catch (error: any) {
+    console.error("Error creating category:", error);
+    if (error.code === "P2002") {
+      return res.status(400).json({ error: "هذا الاسم أو الـ slug موجود بالفعل" });
+    }
+    res.status(500).json({ error: "حدث خطأ في إنشاء الفئة" });
+  }
+});
+
+/**
+ * Update a category
+ * PUT /api/portfolio/categories/:id
+ */
+router.put("/categories/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, slug, description, icon } = req.body;
+
+    const category = await updateCategory(parseInt(id), {
+      name,
+      slug,
+      description,
+      icon,
+    });
+
+    res.json(category);
+  } catch (error: any) {
+    console.error("Error updating category:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "الفئة غير موجودة" });
+    }
+    if (error.code === "P2002") {
+      return res.status(400).json({ error: "هذا الاسم أو الـ slug موجود بالفعل" });
+    }
+    res.status(500).json({ error: "حدث خطأ في تحديث الفئة" });
+  }
+});
+
+/**
+ * Delete a category
+ * DELETE /api/portfolio/categories/:id
+ */
+router.delete("/categories/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const category = await deleteCategory(parseInt(id));
+    res.json({ success: true, message: "تم حذف الفئة بنجاح", category });
+  } catch (error: any) {
+    console.error("Error deleting category:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "الفئة غير موجودة" });
+    }
+    res.status(500).json({ error: "حدث خطأ في حذف الفئة" });
+  }
+});
+
+/**
+ * Get all portfolio items
+ * GET /api/portfolio/items
+ */
+router.get("/items", async (req: Request, res: Response) => {
+  try {
+    const items = await getAllPortfolioItems();
+    res.json(items);
+  } catch (error) {
+    console.error("Error fetching portfolio items:", error);
+    res.status(500).json({ error: "حدث خطأ في جلب العناصر" });
+  }
+});
+
+/**
+ * Get portfolio items by category
+ * GET /api/portfolio/items/category/:categoryId
+ */
+router.get("/items/category/:categoryId", async (req: Request, res: Response) => {
+  try {
+    const { categoryId } = req.params;
+    const items = await getPortfolioItemsByCategory(parseInt(categoryId));
+    res.json(items);
+  } catch (error) {
+    console.error("Error fetching portfolio items by category:", error);
+    res.status(500).json({ error: "حدث خطأ في جلب العناصر" });
+  }
+});
+
+/**
+ * Create a new portfolio item
+ * POST /api/portfolio/items
+ */
+router.post("/items", async (req: Request, res: Response) => {
+  try {
+    const { categoryId, title, description, fileUrl, fileKey, fileType, thumbnail, order } = req.body;
+
+    if (!categoryId || !title || !fileUrl || !fileKey) {
+      return res.status(400).json({ error: "البيانات المطلوبة ناقصة" });
+    }
+
+    const item = await createPortfolioItem({
+      categoryId,
+      title,
+      description,
+      fileUrl,
+      fileKey,
+      fileType,
+      thumbnail,
+      order,
+    });
+
+    res.status(201).json(item);
+  } catch (error: any) {
+    console.error("Error creating portfolio item:", error);
+    if (error.code === "P2003") {
+      return res.status(400).json({ error: "الفئة المحددة غير موجودة" });
+    }
+    res.status(500).json({ error: "حدث خطأ في إنشاء العمل" });
+  }
+});
+
+/**
+ * Update a portfolio item
+ * PUT /api/portfolio/items/:id
+ */
+router.put("/items/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { categoryId, title, description, fileUrl, fileKey, fileType, thumbnail, order } = req.body;
+
+    const item = await updatePortfolioItem(parseInt(id), {
+      categoryId,
+      title,
+      description,
+      fileUrl,
+      fileKey,
+      fileType,
+      thumbnail,
+      order,
+    });
+
+    res.json(item);
+  } catch (error: any) {
+    console.error("Error updating portfolio item:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "العمل غير موجود" });
+    }
+    if (error.code === "P2003") {
+      return res.status(400).json({ error: "الفئة المحددة غير موجودة" });
+    }
+    res.status(500).json({ error: "حدث خطأ في تحديث العمل" });
+  }
+});
+
+/**
+ * Delete a portfolio item
+ * DELETE /api/portfolio/items/:id
+ */
+router.delete("/items/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const item = await deletePortfolioItem(parseInt(id));
+    res.json({ success: true, message: "تم حذف العمل بنجاح", item });
+  } catch (error: any) {
+    console.error("Error deleting portfolio item:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "العمل غير موجود" });
+    }
+    res.status(500).json({ error: "حدث خطأ في حذف العمل" });
+  }
+});
+
+export { router as default };
+export { router as portfolioRouter };
